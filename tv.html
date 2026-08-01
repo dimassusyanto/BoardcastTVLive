@@ -1,0 +1,702 @@
+﻿<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BroadcastHub</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+tailwind.config={theme:{extend:{fontFamily:{heading:['Space Grotesk','sans-serif'],body:['DM Sans','sans-serif']},colors:{dark:{900:'#06060c',800:'#0a0a14',700:'#0e0e1a',600:'#141422',500:'#1a1a2e',400:'#222238',300:'#2a2a44'},accent:{DEFAULT:'#00d4aa',light:'#00ffd8',dim:'rgba(0,212,170,0.12)',dark:'#00a888'},live:'#ff3344'}}}}
+</script>
+<style>
+:root{--bg:#06060c;--fg:#e4e4f0;--muted:#666680;--accent:#00d4aa;--card:#0e0e1a;--border:#1c1c30}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--fg);overflow-x:hidden}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#2a2a44;border-radius:3px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideR{from{opacity:0;transform:translateX(80px)}to{opacity:1;transform:translateX(0)}}
+@keyframes pulseLive{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes syncPulse{0%{opacity:0;transform:translate(-50%,-50%) scale(.8)}15%{opacity:1;transform:translate(-50%,-50%) scale(1)}85%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(.8)}}
+@keyframes waitSpin{to{transform:rotate(360deg)}}
+.anim-up{animation:fadeUp .4s ease-out both}
+.anim-sr{animation:slideR .35s ease-out both}
+.live-dot{animation:pulseLive 1.2s ease-in-out infinite}
+.login-bg{background:radial-gradient(ellipse at 25% 40%,rgba(0,212,170,.07) 0%,transparent 55%),radial-gradient(ellipse at 75% 25%,rgba(0,80,180,.05) 0%,transparent 50%),radial-gradient(ellipse at 50% 85%,rgba(255,51,68,.03) 0%,transparent 50%),var(--bg)}
+.glass{background:rgba(14,14,26,.75);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.05)}
+.inp{background:rgba(20,20,34,.9);border:1px solid var(--border);color:var(--fg);transition:border .2s,box-shadow .2s;border-radius:10px;padding:10px 14px;width:100%;font-size:14px}
+.inp:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,170,.12)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;font-weight:600;font-size:14px;cursor:pointer;border:none;transition:all .2s;font-family:inherit}
+.btn-p{background:var(--accent);color:#06060c}.btn-p:hover{background:#00ffd8;transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,212,170,.3)}
+.btn-g{background:transparent;border:1px solid var(--border);color:var(--fg)}.btn-g:hover{border-color:var(--accent);color:var(--accent);background:rgba(0,212,170,.04)}
+.btn-d{background:rgba(255,68,102,.08);border:1px solid rgba(255,68,102,.15);color:#ff4466}.btn-d:hover{background:rgba(255,68,102,.18);border-color:rgba(255,68,102,.35)}
+.btn-live{background:rgba(255,51,68,.1);border:1px solid rgba(255,51,68,.3);color:#ff4466}.btn-live:hover{background:rgba(255,51,68,.2);border-color:rgba(255,51,68,.5)}
+.btn-sm{padding:6px 12px;font-size:12px;border-radius:8px}
+.btn-xs{padding:4px 8px;font-size:11px;border-radius:6px}
+.ch-item{transition:all .15s;cursor:pointer;border-left:3px solid transparent;padding:10px 16px;border-radius:0 8px 8px 0}
+.ch-item:hover{background:rgba(0,212,170,.04)}.ch-item.active{background:rgba(0,212,170,.08);border-left-color:var(--accent)}
+.vid-card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:all .25s}
+.vid-card:hover{border-color:rgba(0,212,170,.25);transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,.25)}
+.upload-z{border:2px dashed var(--border);border-radius:14px;transition:all .25s;cursor:pointer}
+.upload-z:hover,.upload-z.over{border-color:var(--accent);background:rgba(0,212,170,.04)}
+.ch-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:2rem 1.5rem;transition:all .3s;cursor:pointer;text-align:center}
+.ch-card:hover{border-color:var(--accent);background:rgba(0,212,170,.04);transform:translateY(-4px);box-shadow:0 12px 36px rgba(0,0,0,.3)}
+.toast-item{animation:slideR .3s ease-out both}
+.spinner{width:18px;height:18px;border:2px solid rgba(0,212,170,.2);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;display:inline-block}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:40}.overlay.on{display:block}
+.ctrl-bar{transition:opacity .4s;opacity:0}.ctrl-bar.show{opacity:1}
+.link-bar{background:linear-gradient(90deg,rgba(0,212,170,.06) 0%,rgba(0,212,170,.02) 50%,rgba(0,212,170,.06) 100%);border:1px solid rgba(0,212,170,.12);border-radius:12px}
+.link-bar input{background:transparent;border:none;color:var(--fg);font-family:'DM Sans',monospace;font-size:13px;outline:none;flex:1;min-width:0}
+.sync-badge{animation:syncPulse 2.2s ease-in-out both;pointer-events:none;position:fixed;top:20px;left:50%;transform:translate(-50%,-50%);z-index:35}
+.unmute-banner{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);z-index:25;cursor:pointer;transition:opacity .3s}
+.unmute-banner:hover{opacity:.85!important}
+/* Tambahan: overlay start lebih menarik */
+#ctrl-start .play-icon{width:80px;height:80px;border-radius:50%;background:rgba(0,212,170,.2);border:2px solid rgba(0,212,170,.4);display:flex;align-items:center;justify-content:center;transition:all .3s}
+#ctrl-start:hover .play-icon{background:rgba(0,212,170,.35);transform:scale(1.05)}
+@media(max-width:640px){.resp-stack{flex-direction:column!important;align-items:stretch!important}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+
+<div id="toasts" class="fixed top-4 right-4 z-[100] flex flex-col gap-2 max-w-sm"></div>
+<div id="modal-bg" class="fixed inset-0 z-50 bg-black/60 hidden items-center justify-center" style="display:none"><div id="modal-box" class="glass rounded-2xl p-6 w-full max-w-md mx-4 anim-up"></div></div>
+
+<!-- LOGIN -->
+<div id="pg-login" class="min-h-screen login-bg flex items-center justify-center p-4">
+<div class="glass rounded-2xl p-8 w-full max-w-sm anim-up">
+  <div class="text-center mb-8">
+    <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-accent/10 mb-4"><i class="fa-solid fa-tower-broadcast text-accent text-xl"></i></div>
+    <h1 class="font-heading text-2xl font-bold tracking-tight">BroadcastHub</h1>
+    <p class="text-sm text-[var(--muted)] mt-1">Live Video Management System</p>
+  </div>
+  <form id="form-login" class="space-y-4">
+    <div><label class="block text-xs font-semibold text-[var(--muted)] mb-1.5 uppercase tracking-wider">Username</label><input type="text" id="login-user" class="inp" placeholder="Masukkan username" autocomplete="username" required></div>
+    <div><label class="block text-xs font-semibold text-[var(--muted)] mb-1.5 uppercase tracking-wider">Sandi</label><div class="relative"><input type="password" id="login-pass" class="inp pr-10" placeholder="Masukkan sandi" autocomplete="current-password" required><button type="button" id="toggle-pass" class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--fg)] transition"><i class="fa-solid fa-eye text-sm"></i></button></div></div>
+    <button type="submit" class="btn btn-p w-full justify-center mt-2"><i class="fa-solid fa-right-to-bracket"></i> Masuk</button>
+  </form>
+  <p id="login-err" class="text-red-400 text-xs text-center mt-3 hidden"></p>
+</div>
+</div>
+
+<!-- ADMIN -->
+<div id="pg-admin" class="hidden min-h-screen flex flex-col">
+  <header class="h-14 flex items-center justify-between px-4 border-b border-[var(--border)] bg-dark-800/80 backdrop-blur-lg shrink-0 z-30">
+    <div class="flex items-center gap-3">
+      <button id="btn-sidebar" class="lg:hidden text-[var(--muted)] hover:text-[var(--fg)] transition text-lg"><i class="fa-solid fa-bars"></i></button>
+      <div class="flex items-center gap-2"><i class="fa-solid fa-tower-broadcast text-accent"></i><span class="font-heading font-bold text-sm tracking-tight">BroadcastHub</span></div>
+    </div>
+    <div class="flex items-center gap-3">
+      <span id="admin-name" class="text-xs text-[var(--muted)] hidden sm:block"></span>
+      <button id="btn-logout" class="btn btn-g btn-sm"><i class="fa-solid fa-arrow-right-from-bracket"></i><span class="hidden sm:inline">Keluar</span></button>
+    </div>
+  </header>
+  <div class="flex flex-1 overflow-hidden">
+    <div id="sb-overlay" class="overlay" onclick="toggleSidebar()"></div>
+    <aside id="sidebar" class="w-64 shrink-0 bg-dark-800 border-r border-[var(--border)] flex flex-col overflow-y-auto fixed lg:sticky top-14 left-0 h-[calc(100vh-3.5rem)] z-40 -translate-x-full lg:translate-x-0 transition-transform duration-300">
+      <div class="p-4 flex-1">
+        <div class="flex items-center justify-between mb-3"><span class="text-[10px] font-bold text-[var(--muted)] uppercase tracking-widest">Channel</span><button id="btn-add-ch" class="w-6 h-6 rounded-md bg-accent/10 text-accent text-xs flex items-center justify-center hover:bg-accent/20 transition"><i class="fa-solid fa-plus"></i></button></div>
+        <div id="ch-list" class="space-y-0.5 mb-6"></div>
+        <div class="border-t border-[var(--border)] pt-4">
+          <div class="flex items-center justify-between mb-3"><span class="text-[10px] font-bold text-[var(--muted)] uppercase tracking-widest">Pengguna</span><button id="btn-add-user" class="w-6 h-6 rounded-md bg-accent/10 text-accent text-xs flex items-center justify-center hover:bg-accent/20 transition"><i class="fa-solid fa-plus"></i></button></div>
+          <div id="user-list" class="space-y-0.5"></div>
+        </div>
+      </div>
+      <div class="p-4 border-t border-[var(--border)]"><div class="flex items-center gap-2 text-[10px] text-[var(--muted)]"><i class="fa-solid fa-hard-drive"></i><span>Mode Lokal (IndexedDB)</span></div></div>
+    </aside>
+    <main id="admin-main" class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8"></main>
+  </div>
+</div>
+
+<!-- LIVE VIEW -->
+<div id="pg-live" class="hidden min-h-screen bg-black">
+  <div id="live-select" class="min-h-screen flex flex-col items-center justify-center p-6">
+    <div class="text-center mb-10 anim-up">
+      <div class="inline-flex items-center gap-2 mb-3"><div class="w-2 h-2 rounded-full bg-live live-dot"></div><span class="text-live text-xs font-bold uppercase tracking-widest">Live</span></div>
+      <h1 class="font-heading text-3xl sm:text-4xl font-bold">Pilih Channel</h1>
+      <p class="text-[var(--muted)] mt-2 text-sm">Pilih channel untuk menampilkan video</p>
+    </div>
+    <div id="live-ch-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-w-5xl w-full"></div>
+    <p id="live-empty" class="text-[var(--muted)] text-sm hidden anim-up">Belum ada channel tersedia</p>
+  </div>
+
+  <div id="live-player" class="fixed inset-0 bg-black hidden flex-col">
+    <!-- Video -->
+    <video id="tv-video" class="w-full h-full object-contain" playsinline preload="auto"></video>
+
+    <!-- Sync Badge -->
+    <div id="sync-badge" class="sync-badge hidden">
+      <div class="flex items-center gap-2 bg-accent/20 border border-accent/30 text-accent text-xs font-semibold px-4 py-2 rounded-full backdrop-blur-lg">
+        <i class="fa-solid fa-rotate"></i> Video Diperbarui
+      </div>
+    </div>
+
+    <!-- Unmute Banner (muncul jika video diputar muted) -->
+    <div id="unmute-banner" class="unmute-banner hidden" style="opacity:1">
+      <div class="flex items-center gap-3 bg-black/70 border border-white/15 text-white text-sm px-5 py-3 rounded-full backdrop-blur-lg cursor-pointer hover:bg-black/80 transition">
+        <i class="fa-solid fa-volume-xmark text-white/60"></i>
+        <span>Klik untuk nyala suara</span>
+        <i class="fa-solid fa-chevron-right text-white/40 text-xs"></i>
+      </div>
+    </div>
+
+    <!-- Top Controls -->
+    <div id="ctrl-top" class="ctrl-bar absolute top-0 left-0 right-0 p-4 flex items-center justify-between bg-gradient-to-b from-black/70 to-transparent z-20">
+      <div class="flex items-center gap-3">
+        <div class="w-2 h-2 rounded-full bg-live live-dot"></div>
+        <span id="ctrl-ch-name" class="font-heading font-semibold text-sm"></span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="manualSync()" class="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 transition" title="Periksa video baru"><i class="fa-solid fa-rotate text-sm"></i></button>
+        <button onclick="exitLivePlayer()" class="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 transition" title="Kembali"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+    </div>
+
+    <!-- Bottom Controls -->
+    <div id="ctrl-bot" class="ctrl-bar absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent z-20">
+      <p id="ctrl-vid-name" class="text-sm text-white/80 mb-2 truncate"></p>
+      <div class="flex items-center gap-3">
+        <span id="ctrl-time" class="text-xs text-white/50 font-mono w-24"></span>
+        <div class="flex-1 h-1 bg-white/20 rounded-full overflow-hidden cursor-pointer" id="ctrl-seek">
+          <div id="ctrl-progress" class="h-full bg-accent rounded-full" style="width:0%"></div>
+        </div>
+        <span id="ctrl-dur" class="text-xs text-white/50 font-mono w-24 text-right"></span>
+      </div>
+    </div>
+
+    <!-- Tap overlay untuk show/hide controls -->
+    <div id="ctrl-tap" class="absolute inset-0 z-10" style="display:block"></div>
+
+    <!-- Start Overlay (digunakan sebagai tombol "Klik untuk memutar" saat belum ada interaksi) -->
+    <div id="ctrl-start" class="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-20 cursor-pointer" style="display:none">
+      <div class="play-icon mb-5">
+        <i class="fa-solid fa-play text-accent text-3xl ml-1"></i>
+      </div>
+      <p class="text-white/70 text-lg font-medium">Klik untuk memutar</p>
+      <p class="text-white/30 text-sm mt-2">Setelah itu video akan bersuara otomatis</p>
+    </div>
+
+    <!-- No Video / Waiting -->
+    <div id="ctrl-novid" class="absolute inset-0 bg-black flex flex-col items-center justify-center z-20" style="display:none">
+      <div class="w-10 h-10 border-3 border-white/10 border-t-accent rounded-full mb-5" style="animation:waitSpin 1s linear infinite;border-width:3px"></div>
+      <p class="text-white/50 text-base font-medium mb-2">Menunggu video dari admin</p>
+      <p class="text-white/25 text-xs mb-5">Video akan otomatis diputar saat diunggah</p>
+      <button onclick="manualSync()" class="btn btn-g btn-sm"><i class="fa-solid fa-rotate"></i> Periksa Sekarang</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================================================================
+   FIREBASE CONFIG — isi untuk sinkronisasi antar perangkat (internet)
+   ================================================================ */
+const FIREBASE_CONFIG = null;
+
+/* ================================================================
+   DATABASE — IndexedDB
+   ================================================================ */
+const DB_NAME='BroadcastHub',DB_VER=1;let db=null;
+function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open(DB_NAME,DB_VER);r.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains('users'))d.createObjectStore('users',{keyPath:'username'});if(!d.objectStoreNames.contains('channels')){const s=d.createObjectStore('channels',{keyPath:'id'});s.createIndex('name','name');}if(!d.objectStoreNames.contains('videos')){const s=d.createObjectStore('videos',{keyPath:'id'});s.createIndex('channelId','channelId');s.createIndex('addedAt','addedAt');}};r.onsuccess=e=>{db=e.target.result;res(db);};r.onerror=e=>rej(e);});}
+function tx(s,m='readonly'){return db.transaction(s,m).objectStore(s);}
+function txReq(r){return new Promise((res,rej)=>{r.onsuccess=()=>res(r.result);r.onerror=e=>rej(e);});}
+function txAll(s,m='readonly'){return new Promise((res,rej)=>{const r=db.transaction(s,m).objectStore(s).getAll();r.onsuccess=()=>res(r.result);r.onerror=e=>rej(e);});}
+
+/* ================================================================
+   DATA SERVICE
+   ================================================================ */
+const DS={
+  getUsers:()=>txAll('users'),getUser:u=>txReq(tx('users').get(u)),
+  addUser:u=>txReq(tx('users','readwrite').put(u)),delUser:u=>txReq(tx('users','readwrite').delete(u)),
+  getChannels:()=>txAll('channels'),getChannel:id=>txReq(tx('channels').get(id)),
+  addChannel:c=>txReq(tx('channels','readwrite').put(c)),delChannel:id=>txReq(tx('channels','readwrite').delete(id)),
+  getVideos:cid=>txAll('videos').then(a=>a.filter(v=>v.channelId===cid).sort((a,b)=>a.addedAt-b.addedAt)),
+  getVideo:id=>txReq(tx('videos').get(id)),
+  addVideo:v=>txReq(tx('videos','readwrite').put(v)),delVideo:id=>txReq(tx('videos','readwrite').delete(id)),
+  delVideosByChannel:cid=>new Promise((res,rej)=>{const s=db.transaction('videos','readwrite').objectStore('videos');const r=s.index('channelId').openCursor(IDBKeyRange.only(cid));r.onsuccess=e=>{const c=e.target.result;if(c){c.delete();c.continue();}else res();};r.onerror=e=>rej(e);}),
+  async init(){
+    if((await this.getUsers()).length===0)await this.addUser({username:'ADMIN',password:await hashPw('Broadcasthub123'),role:'admin',createdAt:Date.now()});
+    if((await this.getChannels()).length===0){for(const c of[{id:'lobby',name:'Lobby',desc:'Area lobi utama',createdAt:Date.now()},{id:'meeting',name:'Ruang Meeting',desc:'Ruang pertemuan',createdAt:Date.now()+1},{id:'cafeteria',name:'Kantin',desc:'Area kantin',createdAt:Date.now()+2},{id:'parking',name:'Area Parkir',desc:'Area parkir kendaraan',createdAt:Date.now()+3}])await this.addChannel(c);}
+  }
+};
+
+/* ================================================================
+   UTILITAS
+   ================================================================ */
+function gid(){return Date.now().toString(36)+Math.random().toString(36).substr(2,6);}
+async function hashPw(p){const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(p));return Array.from(new Uint8Array(d)).map(b=>b.toString(16).padStart(2,'0')).join('');}
+function fmtDur(s){if(!s||!isFinite(s))return'--:--';return Math.floor(s/60).toString().padStart(2,'0')+':'+Math.floor(s%60).toString().padStart(2,'0');}
+function fmtSize(b){if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(1)+' KB';return(b/1048576).toFixed(1)+' MB';}
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function getLiveURL(chId){return window.location.origin+window.location.pathname+'?view=live&channel='+encodeURIComponent(chId);}
+
+function toast(msg,type='info'){const c=document.getElementById('toasts');const cols={info:'border-accent/40 bg-accent/10 text-accent',success:'border-green-400/40 bg-green-400/10 text-green-300',error:'border-red-400/40 bg-red-400/10 text-red-300',warn:'border-amber-400/40 bg-amber-400/10 text-amber-300'};const icons={info:'fa-circle-info',success:'fa-circle-check',error:'fa-circle-xmark',warn:'fa-triangle-exclamation'};const el=document.createElement('div');el.className=`toast-item border rounded-xl px-4 py-3 flex items-center gap-3 text-sm ${cols[type]||cols.info}`;el.innerHTML=`<i class="fa-solid ${icons[type]||icons.info} shrink-0"></i><span class="flex-1">${msg}</span>`;c.appendChild(el);setTimeout(()=>{el.style.opacity='0';el.style.transition='opacity .3s';setTimeout(()=>el.remove(),300);},4000);}
+function toastAction(msg,txt,fn){const c=document.getElementById('toasts');const el=document.createElement('div');el.className='toast-item border border-green-400/40 bg-green-400/10 text-green-300 rounded-xl px-4 py-3 flex items-center gap-3 text-sm';el.innerHTML=`<i class="fa-solid fa-circle-check shrink-0"></i><span class="flex-1">${msg}</span><button class="shrink-0 text-xs font-semibold underline underline-offset-2 hover:no-underline transition">${txt}</button>`;c.appendChild(el);el.querySelector('button').addEventListener('click',()=>{fn();el.remove();});setTimeout(()=>{el.style.opacity='0';el.style.transition='opacity .3s';setTimeout(()=>el.remove(),300);},6000);}
+
+function showModal(html){document.getElementById('modal-box').innerHTML=html;document.getElementById('modal-bg').style.display='flex';}
+function closeModal(){document.getElementById('modal-bg').style.display='none';}
+document.getElementById('modal-bg').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
+
+function genThumb(file){return new Promise(res=>{const v=document.createElement('video');v.preload='metadata';v.muted=true;const url=URL.createObjectURL(file);v.src=url;const to=setTimeout(()=>{URL.revokeObjectURL(url);res(null);},6000);v.onloadedmetadata=()=>{v.currentTime=Math.min(1,v.duration*.1);};v.onseeked=()=>{clearTimeout(to);try{const c=document.createElement('canvas');c.width=320;c.height=180;c.getContext('2d').drawImage(v,0,0,320,180);URL.revokeObjectURL(url);res(c.toDataURL('image/jpeg',.6));}catch(e){URL.revokeObjectURL(url);res(null);}};v.onerror=()=>{clearTimeout(to);URL.revokeObjectURL(url);res(null);};});}
+
+/* ================================================================
+   SYNC — BroadcastChannel API
+   ================================================================ */
+const Sync={ch:null,cbs:[],init(){try{this.ch=new BroadcastChannel('bh-sync');this.ch.onmessage=e=>this.cbs.forEach(cb=>cb(e.data));}catch(e){}},send(msg){try{if(this.ch)this.ch.postMessage(msg);}catch(e){}},on(cb){this.cbs.push(cb);}};
+
+/* ================================================================
+   AUTH
+   ================================================================ */
+const Auth={user:null,async login(u,p){const user=await DS.getUser(u);if(!user)return false;if(await hashPw(p)!==user.password)return false;this.user=user;sessionStorage.setItem('bh_session',u);return true;},logout(){this.user=null;sessionStorage.removeItem('bh_session');showPage('login');},restore(){const s=sessionStorage.getItem('bh_session');if(s)DS.getUser(s).then(u=>{if(u)this.user=u;});}};
+
+/* ================================================================
+   NAVIGASI
+   ================================================================ */
+function showPage(p){document.getElementById('pg-login').classList.add('hidden');document.getElementById('pg-admin').classList.add('hidden');document.getElementById('pg-live').classList.add('hidden');if(p==='login')document.getElementById('pg-login').classList.remove('hidden');else if(p==='admin'){document.getElementById('pg-admin').classList.remove('hidden');document.getElementById('pg-admin').classList.add('flex');renderAdmin();}else if(p==='live'){document.getElementById('pg-live').classList.remove('hidden');initLive();}}
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('-translate-x-full');document.getElementById('sb-overlay').classList.toggle('on');}
+
+/* ================================================================
+   LOGIN
+   ================================================================ */
+document.getElementById('form-login').addEventListener('submit',async e=>{e.preventDefault();const u=document.getElementById('login-user').value.trim(),p=document.getElementById('login-pass').value;const err=document.getElementById('login-err');err.classList.add('hidden');if(!u||!p){err.textContent='Username dan sandi wajib diisi';err.classList.remove('hidden');return;}if(!(await Auth.login(u,p))){err.textContent='Username atau sandi salah';err.classList.remove('hidden');return;}toast('Berhasil masuk','success');showPage('admin');});
+document.getElementById('toggle-pass').addEventListener('click',()=>{const i=document.getElementById('login-pass'),ic=document.getElementById('toggle-pass').querySelector('i');if(i.type==='password'){i.type='text';ic.className='fa-solid fa-eye-slash text-sm';}else{i.type='password';ic.className='fa-solid fa-eye text-sm';}});
+document.getElementById('btn-logout').addEventListener('click',()=>Auth.logout());
+
+/* ================================================================
+   ADMIN DASHBOARD
+   ================================================================ */
+let A={selCh:null};
+function renderAdmin(){renderSidebar();renderMain();document.getElementById('admin-name').textContent=Auth.user?Auth.user.username:'';}
+
+async function renderSidebar(){
+  const chs=await DS.getChannels(),users=await DS.getUsers(),vids=await txAll('videos');
+  document.getElementById('ch-list').innerHTML=chs.map(c=>{const cnt=vids.filter(v=>v.channelId===c.id).length;return`<div class="ch-item flex items-center gap-2.5 ${A.selCh===c.id?'active':''}" data-ch="${c.id}"><i class="fa-solid fa-tv text-xs text-[var(--muted)]"></i><span class="text-sm truncate flex-1">${esc(c.name)}</span><span class="text-[10px] text-[var(--muted)]">${cnt}</span></div>`;}).join('');
+  document.getElementById('ch-list').querySelectorAll('.ch-item').forEach(el=>el.addEventListener('click',()=>{A.selCh=el.dataset.ch;renderSidebar();renderMain();}));
+  document.getElementById('user-list').innerHTML=users.map(u=>`<div class="ch-item flex items-center gap-2.5"><i class="fa-solid fa-user text-xs text-[var(--muted)]"></i><span class="text-sm truncate flex-1">${esc(u.username)}</span>${u.username!=='ADMIN'?`<button class="text-[var(--muted)] hover:text-red-400 transition text-xs" data-delu="${u.username}"><i class="fa-solid fa-xmark"></i></button>`:''}</div>`).join('');
+  document.getElementById('user-list').querySelectorAll('[data-delu]').forEach(el=>el.addEventListener('click',()=>confirmDelUser(el.dataset.delu)));
+}
+
+async function renderMain(){
+  const m=document.getElementById('admin-main');
+  if(!A.selCh){m.innerHTML=`<div class="flex flex-col items-center justify-center h-full min-h-[60vh] anim-up"><div class="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center mb-4"><i class="fa-solid fa-tv text-accent text-2xl"></i></div><h2 class="font-heading text-xl font-semibold mb-2">Selamat Datang</h2><p class="text-[var(--muted)] text-sm text-center max-w-xs">Pilih channel di sidebar untuk mengelola video.</p></div>`;return;}
+  const ch=await DS.getChannel(A.selCh);if(!ch){A.selCh=null;renderAdmin();return;}
+  const vids=await DS.getVideos(A.selCh);const liveURL=getLiveURL(A.selCh);
+  m.innerHTML=`<div class="anim-up"><div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-5"><div><div class="flex items-center gap-2.5 mb-1"><h2 class="font-heading text-xl font-bold">${esc(ch.name)}</h2><div class="w-1.5 h-1.5 rounded-full ${vids.length>0?'bg-accent':'bg-[var(--muted)] opacity-40'}"></div></div><p class="text-sm text-[var(--muted)]">${esc(ch.desc||'')} &middot; ${vids.length} video</p></div><div class="flex items-center gap-2 flex-wrap resp-stack"><button class="btn btn-g btn-sm" id="btn-edit-ch"><i class="fa-solid fa-pen"></i> Edit</button><button class="btn btn-d btn-sm" id="btn-del-ch"><i class="fa-solid fa-trash"></i> Hapus</button></div></div><div class="link-bar flex items-center gap-2 px-4 py-3 mb-6"><div class="flex items-center gap-2 shrink-0"><div class="w-2 h-2 rounded-full bg-live live-dot"></div><span class="text-xs font-semibold text-live uppercase tracking-wider">Live URL</span></div><input type="text" value="${liveURL}" readonly class="text-xs sm:text-sm" onclick="this.select()"><button class="btn btn-live btn-xs shrink-0" id="btn-copy-link"><i class="fa-solid fa-copy"></i></button><button class="btn btn-live btn-xs shrink-0" id="btn-open-live"><i class="fa-solid fa-up-right-from-square"></i> Buka</button></div><div class="upload-z p-8 text-center mb-6" id="upload-zone"><i class="fa-solid fa-cloud-arrow-up text-3xl text-[var(--muted)] mb-3"></i><p class="text-sm text-[var(--muted)] mb-1">Seret video ke sini atau klik untuk mengunggah</p><p class="text-xs text-[var(--muted)] opacity-60">MP4, WebM, MOV</p><input type="file" id="file-input" accept="video/*" multiple class="hidden"></div><div id="upload-progress-area" class="hidden mb-5 space-y-2"></div><div class="flex items-center justify-between mb-4"><h3 class="text-sm font-semibold text-[var(--muted)] uppercase tracking-wider">Antrian Video</h3></div><div id="vid-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">${vids.length===0?'<div class="col-span-full text-center py-12 text-[var(--muted)] text-sm"><i class="fa-solid fa-film text-2xl mb-2 block opacity-40"></i>Belum ada video</div>':''}${vids.map((v,i)=>`<div class="vid-card anim-up" style="animation-delay:${i*50}ms"><div class="aspect-video bg-dark-900 relative overflow-hidden">${v.thumbnail?`<img src="${v.thumbnail}" class="w-full h-full object-cover" alt="">`:`<div class="w-full h-full flex items-center justify-center"><i class="fa-solid fa-film text-2xl text-dark-400"></i></div>`}<div class="absolute bottom-2 right-2 bg-black/70 text-white text-[10px] px-1.5 py-0.5 rounded font-mono">${fmtDur(v.duration)}</div></div><div class="p-3"><p class="text-sm font-medium truncate mb-1" title="${esc(v.name)}">${esc(v.name)}</p><p class="text-[10px] text-[var(--muted)] mb-2.5">${fmtSize(v.size)}</p><div class="flex gap-1.5"><button class="btn btn-g btn-sm flex-1 justify-center text-[11px]" data-preview="${v.id}"><i class="fa-solid fa-play"></i></button><button class="btn btn-p btn-sm flex-1 justify-center text-[11px]" data-bcast="${v.id}"><i class="fa-solid fa-tower-broadcast"></i> Broadcast</button><button class="btn btn-d btn-sm text-[11px]" data-delv="${v.id}"><i class="fa-solid fa-trash"></i></button></div></div></div>`).join('')}</div></div>`;
+  const uz=document.getElementById('upload-zone'),fi=document.getElementById('file-input');
+  uz.addEventListener('click',()=>fi.click());uz.addEventListener('dragover',e=>{e.preventDefault();uz.classList.add('over');});uz.addEventListener('dragleave',()=>uz.classList.remove('over'));uz.addEventListener('drop',e=>{e.preventDefault();uz.classList.remove('over');if(e.dataTransfer.files.length)handleUpload(e.dataTransfer.files);});fi.addEventListener('change',e=>{if(e.target.files.length)handleUpload(e.target.files);fi.value='';});
+  document.getElementById('btn-copy-link').addEventListener('click',async()=>{m.querySelector('.link-bar input').select();try{await navigator.clipboard.writeText(liveURL);}catch(e){document.execCommand('copy');}toast('Link Live View disalin','success');});
+  document.getElementById('btn-open-live').addEventListener('click',()=>window.open(liveURL,'_blank'));
+  document.getElementById('btn-edit-ch').addEventListener('click',()=>showEditChModal(ch));
+  document.getElementById('btn-del-ch').addEventListener('click',()=>confirmDelCh(ch));
+  m.querySelectorAll('[data-delv]').forEach(el=>el.addEventListener('click',()=>confirmDelVideo(el.dataset.delv)));
+  m.querySelectorAll('[data-bcast]').forEach(el=>el.addEventListener('click',()=>handleBroadcast(el.dataset.bcast)));
+  m.querySelectorAll('[data-preview]').forEach(el=>el.addEventListener('click',()=>handlePreview(el.dataset.preview)));
+}
+
+async function handleUpload(files){
+  if(!A.selCh)return;const progArea=document.getElementById('upload-progress-area');progArea.classList.remove('hidden');progArea.innerHTML='';
+  for(const file of files){
+    if(!file.type.startsWith('video/')){toast(file.name+' bukan file video','error');continue;}
+    const itemId='up-'+gid();const itemEl=document.createElement('div');itemEl.id=itemId;itemEl.className='flex items-center gap-3 p-3 rounded-lg bg-dark-700/50 border border-[var(--border)] anim-up';itemEl.innerHTML=`<div class="spinner shrink-0"></div><div class="flex-1 min-w-0"><p class="text-sm truncate">${esc(file.name)}</p><p class="text-[10px] text-[var(--muted)]">${fmtSize(file.size)} &middot; Memproses...</p></div>`;progArea.appendChild(itemEl);
+    try{const thumb=await genThumb(file);let dur=0;try{dur=await new Promise(r=>{const v=document.createElement('video');v.preload='metadata';v.src=URL.createObjectURL(file);v.onloadedmetadata=()=>{r(v.duration);URL.revokeObjectURL(v.src);};v.onerror=()=>{r(0);URL.revokeObjectURL(v.src);};});}catch(e){}const vid={id:gid(),channelId:A.selCh,name:file.name,file,thumbnail:thumb,duration:dur,size:file.size,addedAt:Date.now()};await DS.addVideo(vid);Sync.send({type:'video-added',channelId:vid.channelId,videoId:vid.id});const el=document.getElementById(itemId);if(el)el.innerHTML=`<i class="fa-solid fa-circle-check text-green-400 shrink-0"></i><div class="flex-1 min-w-0"><p class="text-sm truncate text-green-300">${esc(file.name)}</p><p class="text-[10px] text-[var(--muted)]">${fmtSize(file.size)} &middot; Selesai</p></div>`;}catch(e){const el=document.getElementById(itemId);if(el)el.innerHTML=`<i class="fa-solid fa-circle-xmark text-red-400 shrink-0"></i><div class="flex-1 min-w-0"><p class="text-sm truncate text-red-300">${esc(file.name)}</p><p class="text-[10px] text-[var(--muted)]">Gagal diproses</p></div>`;}
+  }
+  renderSidebar();renderMain();const ch=await DS.getChannel(A.selCh);if(ch&&files.length>0)toastAction(`${files.length} video ditambahkan ke ${esc(ch.name)}`,'Buka Live View',()=>window.open(getLiveURL(A.selCh),'_blank'));
+}
+async function confirmDelVideo(id){const v=await DS.getVideo(id);if(!v)return;showModal(`<h3 class="font-heading font-bold text-lg mb-2">Hapus Video</h3><p class="text-sm text-[var(--muted)] mb-5">Hapus <strong class="text-[var(--fg)]">${esc(v.name)}</strong>?</p><div class="flex gap-2 justify-end"><button class="btn btn-g btn-sm" onclick="closeModal()">Batal</button><button class="btn btn-d btn-sm" id="cf-delv">Hapus</button></div>`);document.getElementById('cf-delv').addEventListener('click',async()=>{await DS.delVideo(id);Sync.send({type:'video-removed',channelId:v.channelId,videoId:id});closeModal();toast('Video dihapus','success');renderSidebar();renderMain();});}
+async function handleBroadcast(id){const v=await DS.getVideo(id);if(!v)return;Sync.send({type:'broadcast-now',channelId:v.channelId,videoId:id});toast('Broadcast dikirim: '+v.name,'success');}
+async function handlePreview(id){const v=await DS.getVideo(id);if(!v)return;const url=URL.createObjectURL(v.file);showModal(`<h3 class="font-heading font-bold mb-3 truncate">${esc(v.name)}</h3><video src="${url}" controls autoplay class="w-full rounded-lg bg-black" style="max-height:50vh"></video><div class="flex justify-end mt-4"><button class="btn btn-g btn-sm" onclick="this.closest('#modal-box').querySelector('video').pause();closeModal();">Tutup</button></div>`);const check=()=>{if(document.getElementById('modal-bg').style.display==='none')URL.revokeObjectURL(url);else requestAnimationFrame(check);};requestAnimationFrame(check);}
+
+/* Channel CRUD */
+document.getElementById('btn-add-ch').addEventListener('click',()=>{showModal(`<h3 class="font-heading font-bold text-lg mb-4">Channel Baru</h3><div class="space-y-3"><div><label class="block text-xs font-semibold text-[var(--muted)] mb-1 uppercase tracking-wider">Nama Channel</label><input id="m-ch-name" class="inp" placeholder="Contoh: Lobby"></div><div><label class="block text-xs font-semibold text-[var(--muted)] mb-1 uppercase tracking-wider">Deskripsi</label><input id="m-ch-desc" class="inp" placeholder="Opsional"></div></div><div class="flex gap-2 justify-end mt-5"><button class="btn btn-g btn-sm" onclick="closeModal()">Batal</button><button class="btn btn-p btn-sm" id="cf-addch">Buat</button></div>`);document.getElementById('cf-addch').addEventListener('click',async()=>{const name=document.getElementById('m-ch-name').value.trim();if(!name){toast('Nama channel wajib diisi','error');return;}const id=name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')||gid();await DS.addChannel({id,name,desc:document.getElementById('m-ch-desc').value.trim(),createdAt:Date.now()});Sync.send({type:'channel-added',channelId:id});closeModal();toast('Channel "'+name+'" dibuat','success');renderSidebar();});});
+function showEditChModal(ch){showModal(`<h3 class="font-heading font-bold text-lg mb-4">Edit Channel</h3><div class="space-y-3"><div><label class="block text-xs font-semibold text-[var(--muted)] mb-1 uppercase tracking-wider">Nama</label><input id="m-ech-name" class="inp" value="${esc(ch.name)}"></div><div><label class="block text-xs font-semibold text-[var(--muted)] mb-1 uppercase tracking-wider">Deskripsi</label><input id="m-ech-desc" class="inp" value="${esc(ch.desc||'')}"></div></div><div class="flex gap-2 justify-end mt-5"><button class="btn btn-g btn-sm" onclick="closeModal()">Batal</button><button class="btn btn-p btn-sm" id="cf-ech">Simpan</button></div>`);document.getElementById('cf-ech').addEventListener('click',async()=>{ch.name=document.getElementById('m-ech-name').value.trim()||ch.name;ch.desc=document.getElementById('m-ech-desc').value.trim();await DS.addChannel(ch);Sync.send({type:'channel-updated',channelId:ch.id});closeModal();toast('Channel diperbarui','success');renderSidebar();renderMain();});}
+function confirmDelCh(ch){showModal(`<h3 class="font-heading font-bold text-lg mb-2">Hapus Channel</h3><p class="text-sm text-[var(--muted)] mb-5">Hapus <strong class="text-[var(--fg)]">${esc(ch.name)}</strong> beserta videonya?</p><div class="flex gap-2 justify-end"><button class="btn btn-g btn-sm" onclick="closeModal()">Batal</button><button class="btn btn-d btn-sm" id="cf-delch">Hapus</button></div>`);document.getElementById('cf-delch').addEventListener('click',async()=>{await DS.delVideosByChannel(ch.id);await DS.delChannel(ch.id);Sync.send({type:'channel-deleted',channelId:ch.id});if(A.selCh===ch.id)A.selCh=null;closeModal();toast('Channel dihapus','success');renderSidebar();renderMain();});}
+
+/* User CRUD */
+document.getElementById('btn-add-user').addEventListener('click',()=>{showModal(`<h3 class="font-heading font-bold text-lg mb-4">Tambah Pengguna</h3><div class="space-y-3"><div><label class="block text-xs font-semibold text-[var(--muted)] mb-1 uppercase tracking-wider">Username</label><input id="m-usr" class="inp" placeholder="Username"></div><div><label class="block text-xs font-semibold text-[var(--muted)] mb-1 uppercase tracking-wider">Sandi</label><input id="m-pwd" type="password" class="inp" placeholder="Sandi"></div></div><div class="flex gap-2 justify-end mt-5"><button class="btn btn-g btn-sm" onclick="closeModal()">Batal</button><button class="btn btn-p btn-sm" id="cf-addusr">Tambah</button></div>`);document.getElementById('cf-addusr').addEventListener('click',async()=>{const u=document.getElementById('m-usr').value.trim(),p=document.getElementById('m-pwd').value;if(!u||!p){toast('Username dan sandi wajib diisi','error');return;}if(await DS.getUser(u)){toast('Username sudah ada','error');return;}await DS.addUser({username:u,password:await hashPw(p),role:'admin',createdAt:Date.now()});closeModal();toast('Pengguna "'+u+'" ditambahkan','success');renderSidebar();});});
+function confirmDelUser(u){showModal(`<h3 class="font-heading font-bold text-lg mb-2">Hapus Pengguna</h3><p class="text-sm text-[var(--muted)] mb-5">Hapus <strong class="text-[var(--fg)]">${esc(u)}</strong>?</p><div class="flex gap-2 justify-end"><button class="btn btn-g btn-sm" onclick="closeModal()">Batal</button><button class="btn btn-d btn-sm" id="cf-delusr">Hapus</button></div>`);document.getElementById('cf-delusr').addEventListener('click',async()=>{await DS.delUser(u);closeModal();toast('Pengguna dihapus','success');renderSidebar();});}
+document.getElementById('btn-sidebar').addEventListener('click',toggleSidebar);
+
+/* ================================================================
+   LIVE VIEW — ENGINE (dengan perbaikan interaksi)
+   ================================================================ */
+let L={
+  chId:null,vids:[],prevIds:'',idx:0,objUrl:null,
+  ctrlTimer:null,isMuted:false,playing:false,pollTimer:null,
+  preloaded:{}, // {channelId: [videos]}
+  userInteracted:false // flag apakah user sudah pernah klik di player
+};
+
+async function initLive(){
+  const chParam=new URLSearchParams(window.location.search).get('channel');
+  if(chParam){const ch=await DS.getChannel(chParam);if(ch){await enterLivePlayerAsync(chParam);return;}}
+  showChannelSelect();
+}
+
+/* ================================================================
+   CHANNEL SELECT — dengan PRE-LOAD
+   ================================================================ */
+async function showChannelSelect(){
+  document.getElementById('live-select').classList.remove('hidden');
+  document.getElementById('live-player').classList.add('hidden');document.getElementById('live-player').style.display='none';
+  stopPolling();
+  const chs=await DS.getChannels(),vids=await txAll('videos');
+  const grid=document.getElementById('live-ch-grid'),empty=document.getElementById('live-empty');
+  if(chs.length===0){grid.innerHTML='';empty.classList.remove('hidden');return;}
+  empty.classList.add('hidden');
+
+  grid.innerHTML=chs.map((c,i)=>{
+    const cnt=vids.filter(v=>v.channelId===c.id).length;
+    return`<div class="ch-card anim-up" style="animation-delay:${i*60}ms" data-lch="${c.id}"><div class="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center mx-auto mb-3"><i class="fa-solid fa-tv text-accent text-lg"></i></div><h3 class="font-heading font-semibold text-lg mb-1">${esc(c.name)}</h3><p class="text-xs text-[var(--muted)] mb-3">${esc(c.desc||'')}</p><div class="flex items-center justify-center gap-2 mb-3"><span class="text-xs text-[var(--muted)]">${cnt} video</span>${cnt>0?'<span class="w-1.5 h-1.5 rounded-full bg-accent"></span>':''}</div><div class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-accent/10 text-accent text-sm font-semibold"><i class="fa-solid fa-play text-xs"></i> Tonton</div></div>`;
+  }).join('');
+
+  L.preloaded={};
+  chs.forEach(c=>{
+    DS.getVideos(c.id).then(v=>{L.preloaded[c.id]=v;});
+    DS.getChannel(c.id).then(ch=>{L.preloaded['_ch_'+c.id]=ch;});
+  });
+
+  grid.querySelectorAll('[data-lch]').forEach(el=>{
+    el.addEventListener('click',function(){
+      const chId=this.dataset.lch;
+      if(L.preloaded[chId]){
+        enterPlayerDirect(chId, L.preloaded[chId], L.preloaded['_ch_'+chId]);
+      }else{
+        enterLivePlayerAsync(chId);
+      }
+    });
+  });
+}
+
+/* ================================================================
+   ENTER PLAYER — DIRECT (synchronous dari click card)
+   ================================================================ */
+function enterPlayerDirect(chId, vids, ch){
+  console.log('[Player] Enter DIRECT — synchronous from click');
+  L.chId=chId; L.vids=vids||[]; L.prevIds=vids.map(v=>v.id).join(',');
+  L.idx=vids.length>0?vids.length-1:0;
+  L.isMuted=false; L.playing=false;
+  L.userInteracted=true; // karena berasal dari klik
+
+  document.getElementById('live-select').classList.add('hidden');
+  const player=document.getElementById('live-player');
+  player.classList.remove('hidden'); player.style.display='flex';
+  document.getElementById('ctrl-ch-name').textContent=ch?ch.name:chId;
+  document.getElementById('ctrl-tap').style.display='block';
+  document.getElementById('unmute-banner').classList.add('hidden');
+  document.getElementById('sync-badge').classList.add('hidden');
+
+  if(L.vids.length===0){
+    document.getElementById('ctrl-novid').style.display='flex';
+    document.getElementById('ctrl-start').style.display='none';
+    startPolling();
+    return;
+  }
+
+  const v=L.vids[L.idx];
+  if(L.objUrl)URL.revokeObjectURL(L.objUrl);
+  L.objUrl=URL.createObjectURL(v.file);
+
+  const vid=document.getElementById('tv-video');
+  vid.muted=false;
+  vid.src=L.objUrl;
+
+  document.getElementById('ctrl-vid-name').textContent=v.name;
+  document.getElementById('ctrl-dur').textContent=fmtDur(v.duration);
+  document.getElementById('ctrl-progress').style.width='0%';
+  document.getElementById('ctrl-time').textContent='00:00';
+  document.getElementById('ctrl-novid').style.display='none';
+  document.getElementById('ctrl-start').style.display='none'; // tidak perlu overlay karena ada gesture
+
+  var playPromise=vid.play();
+  if(playPromise!==undefined){
+    playPromise.then(function(){
+      console.log('[Play] DIRECT success — unmuted');
+      L.playing=true; L.isMuted=false;
+    }).catch(function(){
+      console.log('[Play] DIRECT unmuted blocked, trying muted...');
+      vid.muted=true;
+      vid.play().then(function(){
+        L.playing=true; L.isMuted=true;
+        document.getElementById('unmute-banner').classList.remove('hidden');
+      }).catch(function(){
+        L.playing=false;
+        document.getElementById('ctrl-start').style.display='flex';
+      });
+    });
+  }
+  startPolling();
+}
+
+/* ================================================================
+   ENTER PLAYER — ASYNC (fallback untuk URL langsung)
+   ================================================================ */
+async function enterLivePlayerAsync(chId){
+  console.log('[Player] Enter ASYNC — from URL navigation');
+  L.chId=chId; L.idx=0; L.isMuted=false; L.playing=false; L.prevIds=''; L.vids=[];
+  L.userInteracted=false; // reset
+
+  document.getElementById('live-select').classList.add('hidden');
+  const player=document.getElementById('live-player');
+  player.classList.remove('hidden'); player.style.display='flex';
+  const ch=await DS.getChannel(chId);
+  document.getElementById('ctrl-ch-name').textContent=ch?ch.name:chId;
+  document.getElementById('ctrl-tap').style.display='block';
+  document.getElementById('unmute-banner').classList.add('hidden');
+  document.getElementById('ctrl-start').style.display='none'; // akan muncul jika ada video
+
+  startPolling();
+  await syncCheck(); // akan memanggil attemptAutoPlay yang menampilkan overlay jika perlu
+}
+
+function exitLivePlayer(){
+  stopPolling();
+  const vid=document.getElementById('tv-video');vid.pause();vid.removeAttribute('src');vid.load();
+  if(L.objUrl){URL.revokeObjectURL(L.objUrl);L.objUrl=null;}
+  L.chId=null;L.playing=false;L.userInteracted=false;
+  document.getElementById('ctrl-novid').style.display='none';
+  document.getElementById('ctrl-start').style.display='none';
+  document.getElementById('unmute-banner').classList.add('hidden');
+  document.getElementById('sync-badge').classList.add('hidden');
+  showChannelSelect();
+}
+
+/* ================================================================
+   ATTEMPT AUTO PLAY — untuk sync-triggered plays (polling/broadcast)
+   ================================================================ */
+async function attemptAutoPlay(){
+  if(L.vids.length===0){showNoVideo();return;}
+  if(L.idx>=L.vids.length)L.idx=0;
+  const v=L.vids[L.idx];
+  if(!v){L.idx=0;attemptAutoPlay();return;}
+
+  if(L.objUrl)URL.revokeObjectURL(L.objUrl);
+  L.objUrl=URL.createObjectURL(v.file);
+
+  const vid=document.getElementById('tv-video');
+  // Jika user sudah berinteraksi, kita bisa langsung unmuted
+  vid.muted = !L.userInteracted; // jika belum interaksi, muted dulu
+  vid.src=L.objUrl;
+
+  document.getElementById('ctrl-vid-name').textContent=v.name;
+  document.getElementById('ctrl-dur').textContent=fmtDur(v.duration);
+  document.getElementById('ctrl-progress').style.width='0%';
+  document.getElementById('ctrl-time').textContent='00:00';
+  document.getElementById('ctrl-novid').style.display='none';
+  document.getElementById('ctrl-start').style.display='none';
+  document.getElementById('unmute-banner').classList.add('hidden');
+
+  await waitForReady(vid);
+
+  // Coba play
+  try {
+    await vid.play();
+    L.playing = true;
+    L.isMuted = vid.muted;
+    if (vid.muted) {
+      document.getElementById('unmute-banner').classList.remove('hidden');
+    }
+    console.log('[Play] ASYNC success, muted=' + vid.muted);
+    // Jika belum interaksi dan video berjalan muted, tampilkan overlay? Tidak, karena sudah ada banner.
+  } catch (e) {
+    console.log('[Play] ASYNC play failed:', e.name);
+    // Gagal total -> tampilkan overlay start
+    L.playing = false;
+    document.getElementById('ctrl-start').style.display = 'flex';
+  }
+}
+
+function waitForReady(vid){
+  return new Promise(resolve=>{
+    if(vid.readyState>=3){resolve();return;}
+    var done=function(){vid.removeEventListener('canplay',done);vid.removeEventListener('loadeddata',done);clearTimeout(t);resolve();};
+    vid.addEventListener('canplay',done);
+    vid.addEventListener('loadeddata',done);
+    var t=setTimeout(done,8000);
+  });
+}
+
+function showNoVideo(){
+  var vid=document.getElementById('tv-video');vid.pause();vid.removeAttribute('src');vid.load();
+  if(L.objUrl){URL.revokeObjectURL(L.objUrl);L.objUrl=null;}
+  L.playing=false;
+  document.getElementById('ctrl-novid').style.display='flex';
+  document.getElementById('ctrl-start').style.display='none';
+  document.getElementById('unmute-banner').classList.add('hidden');
+}
+
+/* ================================================================
+   SYNC CHECK
+   ================================================================ */
+async function syncCheck(){
+  if(!L.chId)return;
+  var newVids=await DS.getVideos(L.chId);
+  var newIds=newVids.map(function(v){return v.id;}).join(',');
+  var oldIds=L.prevIds;
+  if(newIds===oldIds)return;
+
+  console.log('[Sync] Change detected:',oldIds||'(empty)','→',newIds||'(empty)');
+  var oldArr=oldIds?oldIds.split(',').filter(Boolean):[];
+  var addedVids=newVids.filter(function(v){return oldArr.indexOf(v.id)===-1;});
+
+  L.vids=newVids; L.prevIds=newIds;
+
+  if(L.vids.length===0){showNoVideo();return;}
+
+  if(oldArr.length===0){L.idx=L.vids.length-1;await attemptAutoPlay();flashSyncBadge();return;}
+
+  if(addedVids.length>0){
+    var latestId=addedVids[addedVids.length-1].id;
+    var newIdx=L.vids.findIndex(function(v){return v.id===latestId;});
+    if(newIdx>=0)L.idx=newIdx; else L.idx=L.vids.length-1;
+    await attemptAutoPlay();flashSyncBadge();return;
+  }
+
+  if(!L.vids[L.idx]){L.idx=Math.min(L.idx,L.vids.length-1);if(L.idx<0)L.idx=0;await attemptAutoPlay();}
+}
+
+/* ================================================================
+   POLLING
+   ================================================================ */
+function startPolling(){stopPolling();syncCheck();L.pollTimer=setInterval(function(){syncCheck();},800);}
+function stopPolling(){if(L.pollTimer){clearInterval(L.pollTimer);L.pollTimer=null;}}
+
+/* ================================================================
+   BROADCASTCHANNEL LISTENER
+   ================================================================ */
+Sync.on(async function(msg){
+  if(!L.chId)return;
+  if(msg.type==='video-added'&&msg.channelId===L.chId){await syncCheck();}
+  else if(msg.type==='video-removed'&&msg.channelId===L.chId){await syncCheck();}
+  else if(msg.type==='broadcast-now'&&msg.channelId===L.chId){
+    await syncCheck();
+    var bIdx=L.vids.findIndex(function(v){return v.id===msg.videoId;});
+    if(bIdx>=0&&bIdx!==L.idx){L.idx=bIdx;await attemptAutoPlay();flashSyncBadge();}
+  }
+  else if(msg.type==='channel-deleted'&&msg.channelId===L.chId){exitLivePlayer();}
+});
+
+/* ================================================================
+   PLAYBACK CONTROLS
+   ================================================================ */
+document.getElementById('tv-video').addEventListener('ended',async function(){
+  console.log('[Play] Video ended, next');
+  L.idx++;if(L.idx>=L.vids.length)L.idx=0;
+  await attemptAutoPlay();
+});
+
+document.getElementById('tv-video').addEventListener('timeupdate',function(){
+  var v=document.getElementById('tv-video');if(!v.duration||!isFinite(v.duration))return;
+  document.getElementById('ctrl-progress').style.width=((v.currentTime/v.duration)*100)+'%';
+  document.getElementById('ctrl-time').textContent=fmtDur(v.currentTime);
+});
+
+document.getElementById('ctrl-seek').addEventListener('click',function(e){
+  var v=document.getElementById('tv-video');if(!v.duration||!isFinite(v.duration))return;
+  var rect=this.getBoundingClientRect();
+  v.currentTime=((e.clientX-rect.left)/rect.width)*v.duration;
+});
+
+/* ================================================================
+   INTERAKSI USER — UNMUTE & START
+   ================================================================ */
+// Fungsi untuk menangani klik di area player (termasuk overlay start dan banner)
+function handlePlayerInteraction() {
+  if (!L.chId) return;
+  const vid = document.getElementById('tv-video');
+  L.userInteracted = true;
+
+  // Sembunyikan overlay start jika tampil
+  const startOverlay = document.getElementById('ctrl-start');
+  if (startOverlay.style.display !== 'none') {
+    startOverlay.style.display = 'none';
+  }
+
+  // Sembunyikan banner unmute
+  document.getElementById('unmute-banner').classList.add('hidden');
+
+  // Jika video belum berjalan, coba play unmuted
+  if (vid.paused) {
+    vid.muted = false;
+    vid.play().then(() => {
+      L.playing = true;
+      L.isMuted = false;
+      console.log('[Interaction] Play started with sound');
+    }).catch(e => {
+      console.log('[Interaction] Play failed:', e.name);
+      // Jika gagal, coba muted
+      vid.muted = true;
+      vid.play().then(() => {
+        L.playing = true;
+        L.isMuted = true;
+        document.getElementById('unmute-banner').classList.remove('hidden');
+      });
+    });
+  } else {
+    // Jika sudah berjalan tapi muted, unmute
+    if (vid.muted) {
+      vid.muted = false;
+      L.isMuted = false;
+      document.getElementById('unmute-banner').classList.add('hidden');
+      console.log('[Interaction] Unmuted');
+    }
+  }
+}
+
+// Overlay start diklik
+document.getElementById('ctrl-start').addEventListener('click', function(e) {
+  e.stopPropagation();
+  handlePlayerInteraction();
+});
+
+// Banner unmute diklik
+document.getElementById('unmute-banner').addEventListener('click', function(e) {
+  e.stopPropagation();
+  handlePlayerInteraction();
+});
+
+// Klik di area tap (seluruh player) juga memicu interaksi
+document.getElementById('ctrl-tap').addEventListener('click', function(e) {
+  // Jangan ganggu jika klik pada kontrol (tombol)
+  if (e.target.closest('#ctrl-top') || e.target.closest('#ctrl-bot')) return;
+  handlePlayerInteraction();
+  // Tampilkan kontrol
+  showCtrl();
+});
+
+// Juga tangkap keydown dan touchstart untuk interaksi
+document.getElementById('live-player').addEventListener('keydown', handlePlayerInteraction);
+document.getElementById('live-player').addEventListener('touchstart', handlePlayerInteraction);
+
+/* ================================================================
+   CONTROLS SHOW/HIDE
+   ================================================================ */
+function showCtrl(){document.getElementById('ctrl-top').classList.add('show');document.getElementById('ctrl-bot').classList.add('show');clearTimeout(L.ctrlTimer);L.ctrlTimer=setTimeout(hideCtrl,4000);}
+function hideCtrl(){document.getElementById('ctrl-top').classList.remove('show');document.getElementById('ctrl-bot').classList.remove('show');}
+document.getElementById('ctrl-tap').addEventListener('click',showCtrl);
+document.getElementById('ctrl-tap').addEventListener('mousemove',showCtrl);
+
+/* Manual sync */
+async function manualSync(){await syncCheck();toast('Memeriksa video baru...','info');}
+
+/* Sync badge */
+function flashSyncBadge(){
+  var badge=document.getElementById('sync-badge');
+  var clone=badge.cloneNode(true);clone.id='sync-badge';
+  badge.parentNode.replaceChild(clone,badge);
+  setTimeout(function(){clone.classList.add('hidden');},2400);
+}
+
+/* ================================================================
+   INISIALISASI
+   ================================================================ */
+async function initApp(){
+  await openDB();await DS.init();Sync.init();Auth.restore();
+  if(new URLSearchParams(window.location.search).get('view')==='live'){showPage('live');return;}
+  if(Auth.user&&sessionStorage.getItem('bh_session')){showPage('admin');return;}
+  showPage('login');
+}
+initApp().catch(function(e){console.error(e);toast('Gagal memuat aplikasi','error');});
+</script>
+</body>
+</html>
